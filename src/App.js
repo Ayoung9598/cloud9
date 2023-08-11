@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Amplify UI
 import '@aws-amplify/ui-react/styles.css';
@@ -28,8 +28,85 @@ const theme = {
 
 function App() {
     const [colorMode, setColorMode] = useState('system');
-    const [isLaunching, setIsLaunching] = useState(false);
     const [isSigningOut, setIsSigningOut] = useState(false);
+    const [instances, setInstances] = useState([]);
+
+    // Set initial list of instances
+    useEffect(() => {
+        const initialInstances = [
+            {
+                InstanceId: 1,
+                LaunchTime: new Date().toLocaleDateString(),
+                PrivateIpAddress: '10.16.1.100',
+                PublicIpAddress: '100.100.100.100',
+                State: {
+                    Name: 'Running',
+                },
+                Tags: [{ Key: 'owner', Value: 'User' }],
+            },
+            {
+                InstanceId: 2,
+                LaunchTime: new Date().toLocaleDateString(),
+                PrivateIpAddress: '10.16.1.101',
+                PublicIpAddress: '100.100.100.101',
+                State: {
+                    Name: 'Running',
+                },
+                Tags: [{ Key: 'owner', Value: 'User' }],
+            },
+        ];
+        setInstances(initialInstances);
+    }, []);
+
+    // Return table rows of instances
+    function InstanceRows() {
+        return instances.map((i) => {
+            return (
+                <TableRow key={i.InstanceId}>
+                    <TableCell>{i.InstanceId}</TableCell>
+                    <TableCell>{i.LaunchTime}</TableCell>
+                    <TableCell>
+                        {i.Tags.find((t) => t.Key === 'owner')?.Value}
+                    </TableCell>
+                    <TableCell>{i.PrivateIpAddress}</TableCell>
+                    <TableCell>{i.PublicIpAddress}</TableCell>
+                    <TableCell>{i.State?.Name}</TableCell>
+                    <TableCell>
+                        <Button
+                            id={i.InstanceId}
+                            size="small"
+                            onClick={(e) => terminateInstance(e.target.id)}
+                        >
+                            Terminate
+                        </Button>
+                    </TableCell>
+                </TableRow>
+            );
+        });
+    }
+
+    // Add a new row to the instances state
+    function launchInstance() {
+        const maxId = Math.max(...instances.map((i) => i.InstanceId));
+        setInstances([
+            ...instances,
+            {
+                InstanceId: isFinite(maxId) ? maxId + 1 : 1,
+                LaunchTime: new Date().toLocaleDateString(),
+                PrivateIpAddress: '10.16.1.101',
+                PublicIpAddress: '100.100.100.101',
+                State: {
+                    Name: 'Running',
+                },
+                Tags: [{ Key: 'owner', Value: 'User' }],
+            },
+        ]);
+    }
+
+    // Remove a row from the instances state based on id
+    function terminateInstance(id) {
+        setInstances(instances.filter((i) => i.InstanceId.toString() !== id));
+    }
 
     return (
         <ThemeProvider theme={theme} colorMode={colorMode}>
@@ -44,11 +121,7 @@ function App() {
                 >
                     <Heading level={2}>Welcome user!</Heading>
                     <View style={{ marginBottom: '20px' }}>
-                        <Button
-                            loadingText="Launching..."
-                            isLoading={isLaunching}
-                            onClick={() => setIsLaunching(true)}
-                        >
+                        <Button onClick={() => launchInstance()}>
                             Launch Instance
                         </Button>
                         <Button
@@ -60,10 +133,9 @@ function App() {
                             Sign Out
                         </Button>
                     </View>
-                    {(isLaunching || isSigningOut) && (
+                    {isSigningOut && (
                         <Button
                             onClick={() => {
-                                setIsLaunching(false);
                                 setIsSigningOut(false);
                             }}
                         >
@@ -79,29 +151,11 @@ function App() {
                                 <TableCell as="th">Private IP</TableCell>
                                 <TableCell as="th">Public IP</TableCell>
                                 <TableCell as="th">Status</TableCell>
+                                <TableCell as="th"></TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            <TableRow>
-                                <TableCell>1</TableCell>
-                                <TableCell>
-                                    {new Date().toLocaleDateString()}
-                                </TableCell>
-                                <TableCell>User</TableCell>
-                                <TableCell>10.16.1.100</TableCell>
-                                <TableCell>100.100.100.100</TableCell>
-                                <TableCell>Running</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>2</TableCell>
-                                <TableCell>
-                                    {new Date().toLocaleDateString()}
-                                </TableCell>
-                                <TableCell>User</TableCell>
-                                <TableCell>10.16.1.101</TableCell>
-                                <TableCell>100.100.100.101</TableCell>
-                                <TableCell>Running</TableCell>
-                            </TableRow>
+                            <InstanceRows />
                         </TableBody>
                     </Table>
                     <ToggleButtonGroup
